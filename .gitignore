@@ -2,3 +2,4 @@
 .env
 __pycache__/
 *.pyc
+vm_samples/

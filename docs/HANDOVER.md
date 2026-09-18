@@ -21,6 +21,17 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 - Cloudflare 経路は課金ブロックのため未実測のまま（コードは残してある）。
 - Claude Code に TypeSafe プラグイン導入済み（typesafe@typesafe-ai v0.5.7、user スコープ）。新しいセッションから `typesafe-ai` スキルが使える。
 
+## 2026-09-19 朝: 組み込み先 1（support@ 取り込み）の実測
+- VM の gmail_intake.py を `vm_samples/`（git 除外）に取得。台帳は件名・差出人・結果のみで本文なし。
+  読み取り専用の `vm_samples/dump_support_samples.py` で直近 60 日・40 通の本文を取得（Gmail は list/get のみ）。
+- **現状の事実**: 40 通中 38 通が「イベント No. を特定できず」で捨てられ、顧客の実返信はほぼ未取り込み。唯一 posted の 1 通は
+  TOTO の自動送信（受付 No を問い合わせ No と誤検出）。
+- **JEV 実測（Noul is_customer / Choice category / Score urgency、40 通 11.1 秒）**: 自動送信・広告・求人は is_customer 0.02〜0.09、
+  顧客本人の返信は 0.78〜0.93 で明確に分離。0.24〜0.53 の境界帯は法人客の担当者・取引先・社内（林誠一/laterre、YABE、Liu Wenwen、TRIO STYLE、
+  村上良一の Re:）で、「顧客」の定義（法人客の窓口を含めるか）を質問文に明記すれば解消できる見込み。緊急度は「明日の予約の件」1.64、
+  キャンセル 0.95、決済依頼への返信 0.95 と妥当。結果は `vm_samples/jev_results.json`。
+- 組み込み先 2（中止・指摘の検知）はローカル実測済み: 言い換え全検知、引っかけ否定 9 件全て非検知、境界帯は既存キーワードで補完する二段構成。
+
 ## ブロッカー（解消済みを含む履歴）
 1. **§6 の残りが未取得。** 元記事を最後まで PDF 化し直す（ブラウザの「ページ全体を保存」で 12 ページ以降も含める）か、本文を貼り付ける。
 2. **Cloudflare 経由の呼び出しは残高待ち。** `client/jev_client.py` を作成し、正しい REST 形式（`/ai/run` に `{"model","input"}`）まで到達したが、
