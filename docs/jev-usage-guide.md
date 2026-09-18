@@ -103,7 +103,9 @@ LLM の「自信があります！」とは違い、JEV の「わかりません
 - Cloudflare 経由の単価は公開ドキュメントに記載がなく、**Cloudflare のダッシュボード（AI > Models > typesafe/jev）で確認する形式**になっている（2026 年 9 月時点）。
 - ダッシュボードの実表示（2026-09-19 確認）: **Input tokens (per 1M) $0.042、Context length 32,000 tokens、Provider model jev-latest**。TypeSafe 公式と同額で、Neuron 換算ではなくトークン単価で表示されている。[^cf-dash]
 - 参考: Workers AI 全体の課金単位は Neuron。1 日 10,000 Neuron まで無料、超過分は $0.011 / 1,000 Neuron（Workers Paid プラン）。jev のトークン単価と Neuron 無料枠の対応関係はダッシュボードに表示がなく、未確認。[^cf-pricing]
-- ダッシュボードのモデルページに「Generate API Token」ボタンと cURL 例があり、Worker を書かずに REST API（`/accounts/<ACCOUNT_ID>/ai/run/typesafe/jev`）から直接呼べる。[^cf-dash]
+- ダッシュボードのモデルページに「Generate API Token」ボタンと cURL 例があり、Worker を書かずに REST API から直接呼べる。[^cf-dash]
+- **REST の実測（2026-09-19）。** 第三者モデルは URL にモデル名を入れる形（`/ai/run/typesafe/jev`）では `7000 No route for that URI` になる。正しくは `POST /accounts/<ACCOUNT_ID>/ai/run` に本文 `{"model": "typesafe/jev", "input": {"state": …, "questions": …}}` を送る。[^cf-jev]
+- **課金は Workers AI の Neuron 無料枠ではなく AI Gateway の Unified Billing（前払いクレジット）。** 残高ゼロの状態で呼ぶと `402 {"code": 2021, "message": "Insufficient balance; add money to your gateway or use BYOK"}` が返った。クレジットは AI Gateway > Credits Available > Manage > Top-up credits から追加する。BYOK は TypeSafe 自身の API キーを AI Gateway に登録して自前課金にする方式（早期アクセスの招待が必要）。[^cf-billing]
 
 ---
 
@@ -444,6 +446,7 @@ const state = {
 [^pypi-shim]: PyPI `typesafe-ai` 0.1.0（リダイレクト用シム、TypeSafe 非公式） https://pypi.org/project/typesafe-ai/
 [^npm]: npm `@typesafe-ai/sdk` 0.6.0 https://www.npmjs.com/package/@typesafe-ai/sdk
 [^cf-pricing]: Cloudflare Workers AI Pricing https://developers.cloudflare.com/workers-ai/platform/pricing/
+[^cf-billing]: Cloudflare AI Gateway「Unified Billing」 https://developers.cloudflare.com/ai-gateway/features/unified-billing/ と、2026-09-19 の実測エラー（402 code 2021）
 [^cf-dash]: Cloudflare ダッシュボード AI > Models > typesafe/Jev（2026-09-19 のスクリーンショットより。Pricing・Context length・Quick Start の表示）
 [^henteko]: Zenn（henteko）「Cloudflare WorkersでJevを使ったら高速か検証してみた」 https://zenn.dev/henteko/articles/1d159d10413312 （検索結果の要約から引用）
 [^orca]: OrcaRouter「Jev: TypeSafe's Decision Model, Speed and Cost Explained」 https://www.orcarouter.ai/blog/jev-typesafe-system-one-what-we-know （検索結果の要約から引用）

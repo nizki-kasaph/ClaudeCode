@@ -16,11 +16,15 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 
 ## ブロッカー
 1. **§6 の残りが未取得。** 元記事を最後まで PDF 化し直す（ブラウザの「ページ全体を保存」で 12 ページ以降も含める）か、本文を貼り付ける。
-2. **JEV を実際に呼べる環境が未整備。** 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
+2. **Cloudflare 経由の呼び出しは残高待ち。** `client/jev_client.py` を作成し、正しい REST 形式（`/ai/run` に `{"model","input"}`）まで到達したが、
+   `402 Insufficient balance; add money to your gateway or use BYOK` で止まっている。第三者モデルは Workers AI の Neuron 無料枠ではなく
+   AI Gateway の前払いクレジットで課金される。ユーザーが AI Gateway > Credits Available > Manage > Top-up credits で入金すれば、
+   `python3 client/jev_client.py` がそのまま通る見込み。`.env`（gitignore 済み）に CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN 設定済み、トークンは verify で active を確認。
+3. **公式 API 側は未着手。** 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
 
 ## 次にやること（順番）
 1. 元記事の §6 残りを入手し、`jev-usage-guide.md` の「6-1 質問は2つを1回で」以降と「6-2〜6-4（未取得）」を埋める。
-2. Cloudflare Workers AI 経由の「判定サービス」Worker と、Python / Node の共通クライアント（環境変数で Cloudflare / 公式 API を切替）を作る。`wrangler dev` でローカル検証してからデプロイ。ユーザーの Cloudflare アカウント有無・プランを確認中。
+2. クレジット入金後に `python3 client/jev_client.py` を実行し、Noul / Choice / Score が返ることと所要時間を記録する。Node は不要（REST 直呼び）。
 
 ## 参照ファイル
 - `docs/jev-usage-guide.md` … 成果物（改訂版）

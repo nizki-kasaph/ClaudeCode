@@ -10,11 +10,12 @@ TypeSafe AI の判定専用モデル JEV の使い方を、AGI ラボの解説�
 | `docs/jev-usage-guide.md` | 本体。元記事 §1〜§5・§6-1 途中までを転記し、公式 SDK・実測レポートで補足 |
 | `docs/HANDOVER.md` | 作業の引継メモ（未取得箇所・push 方針など） |
 | `source/JEV.pdf` | 元記事の PDF（12 ページ・画像のみ。§6-1 途中で終了） |
+| `client/jev_client.py` | Python クライアント。`JEV_BACKEND=cloudflare`（既定）/ `typesafe` を環境変数で切替。`.env` に認証情報 |
 
 ## 未完了
 
 - 元記事 §6-1 の後半と §6-2〜§6-4 は PDF に含まれておらず未転記（2026-09-19 時点、サイト側エラーで再取得できず）。
-- JEV を呼べる環境は未整備。公式 API は招待待ち。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。
+- Cloudflare 経由の呼び出しは AI Gateway クレジットの入金待ち（402 で停止中）。公式 API は招待待ち。
 
 ## リポジトリ
 
