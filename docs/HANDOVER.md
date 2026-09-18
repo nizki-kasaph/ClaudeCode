@@ -36,7 +36,10 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
   JEV の役割は pinay_pick の各行の自由記述（解約理由・更新記事抜粋・特記事項）に対する Noul / Choice の一括判定（1 行 1 リクエストにまとめる）。
 - VM の環境変数は `~/.openclaw/.env` が存在（中身未読）。配備時はここに TYPESAFE_API_KEY を足す想定。
 - 組み込み先 1 の方針: 境界帯の差出人は「全部顧客」（法人客の窓口を含む）。No. 無し顧客メールは差出人メールアドレスから台帳・イベントを引く方針だが、
-  pinay_pick の台帳に電話番号はあってもメール欄は見当たらず、crm_pinay.py にもメール検索は無い。顧客メールの所在を要確認。
+  **訂正: 抽出台帳 `/home/NIZ-ki/pinay_ledger/pinay_ledger.sqlite3`（VM、毎朝取り込み）の customers テーブルに `email` 列あり（約 2.5 万行）。**
+  events テーブル（customer_id, event_no, status, progress, occurred_at, category_*）で顧客→イベントを引ける。
+  40 通の差出人で照合すると 21 件が customers に一致（うち 19 件はイベントあり）。未一致 19 件の大半は広告・自動送信。
+  → 設計: JEV is_customer ≥ 閾値 → 差出人 email で customers → 直近イベントへ記録。顧客だが未一致なら Chat 通知（人が No. を付ける）。
 - 組み込み先 2（中止・指摘の検知）はローカル実測済み: 言い換え全検知、引っかけ否定 9 件全て非検知、境界帯は既存キーワードで補完する二段構成。
 
 ## ブロッカー（解消済みを含む履歴）
