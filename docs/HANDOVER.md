@@ -56,6 +56,18 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 5. **第 3 の経路: Vercel AI Gateway** に `typesafe-ai/jev` が同単価（$0.042/1M 入力）で掲載。AI SDK の `evaluate({model, state, questions})` 形式。
    Vercel アカウントと課金設定が必要。ユーザーの Vercel アカウント有無は未確認。OpenRouter は 404 で不可。 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
 
+## 次セッションの開始手順（2026-09-19 引継）
+1. 作業ディレクトリは `~/Documents/Claude/JEV-UsageGuide/`（独立リポ、GitHub nizki-kasaph/ClaudeCode main）。`.env` に TYPESAFE_API_KEY / CLOUDFLARE_* 設定済み。
+2. 設計前に TypeSafe プラグインの指針どおり公式 docs を読む: https://docs.typesafe.ai/llms.txt → noul / confidence / cookbooks（hierarchical_classification, rerank）。
+3. 組み込み先 1（support@ 取り込み）から実装。VM は `gcloud compute ssh NIZ-ki@openclaw-gateway --zone asia-northeast1-a`（権限バイパス時のみ私が直接実行可）。
+   - 差し込み位置: gmail_intake.py の load_message 後・post_event_detail 前。JEV 3 問（is_customer / category / urgency）を 1 リクエスト。
+   - 「顧客」の定義は法人客の窓口・取引先担当者を含む（ユーザー確定）。
+   - 顧客 → 差出人 email で pinay_ledger.sqlite3 の customers → events（直近）へ記録。未一致は Chat 通知。
+   - 未決: 記録先イベントの選び方（未完了直近 or 最新）、通知先スペース。
+4. 組み込み先 2（stop-word-gate / pushback-debug-inject）: キーワード一致を第 1 段、未一致のみ JEV Noul（Node fetch、~/.openclaw/.env のキー）。実測済みの質問文は本セッションのログ参照（HANDOVER の実測節）。
+5. 組み込み先 3（pinay_pick 再ランキング）: `vm_samples/suzuki_queries.txt` の質問型に対し、行ごとの自由記述へ Noul / Choice を一括判定。
+6. すべてローカル（dry-run）で検証してから VM へ 1 回だけ配備。VM 上のファイル変更前にバックアップ（既存慣行 backup-YYYYMMDD）。
+
 ## 次にやること（順番）
 1. 元記事の §6 残りを入手し、`jev-usage-guide.md` の「6-1 質問は2つを1回で」以降と「6-2〜6-4（未取得）」を埋める。
 2. 公式 API で実測済み。次は実用途への組み込み（メール返信要否判定など）。コンソールの Usage で消費量・課金の表示を確認し、料金節に反映する。
