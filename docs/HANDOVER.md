@@ -22,7 +22,7 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
    `python3 client/jev_client.py` がそのまま通る見込み。`.env`（gitignore 済み）に CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN 設定済み、トークンは verify で active を確認。
 3. **Cloudflare の課金がアカウント側でブロック（2026-09-19）。** AI Gateway credits の Top-up（最小 $10＋手数料 $1、最大 $50）で
    「決済手段を認証できませんでした」、カード追加で「There was an error processing your card」。ユーザーは複数のカードで普段の海外決済も
-   問題なし、登録はできるが決済だけ通らない。PayPal と Cloudflare Billing サポートへの問い合わせが残る手段。
+   問題なし、登録はできるが決済だけ通らない。**PayPal も不可（ユーザー確認済み）。** 残る手段は Cloudflare Billing サポートへの問い合わせのみ。
 4. **TypeSafe 公式は招待制（invite-only）。** console.typesafe.ai は「Sorry, TypeSafe is currently invite-only. For an invite, join the waitlist at typesafe.ai」。
    待機リストは typesafe.ai トップ右上の「Join Waitlist」（ページ読込後に出る。メール 1 欄のフォーム）。Discord: https://discord.gg/typesafe
 5. **第 3 の経路: Vercel AI Gateway** に `typesafe-ai/jev` が同単価（$0.042/1M 入力）で掲載。AI SDK の `evaluate({model, state, questions})` 形式。
