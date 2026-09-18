@@ -96,6 +96,8 @@ LLM の「自信があります！」とは違い、JEV の「わかりません
 1 通あたり 0.02 円以下でメールを仕分けられる計算。
 
 - 「価格は補助されている可能性があり、将来下がる見込み」と TypeSafe 自身が述べている。[^orca]
+- **コンソールの Usage 画面（2026-09-19 実見）。** Tokens・Requests・Spend の 3 グラフ（日次・30 日）。本書の実測 6 リクエストで Tokens 3,984、Spend は $0.01 未満の表示。
+  無料枠・クレジット残高・支払い方法の表示は無く、早期アクセス中の課金方法は画面からは分からない（請求が来るかどうかは未確認）。[^console]
 
 ### Cloudflare Workers AI 経由[^article]
 
@@ -424,7 +426,11 @@ const state = {
 2. 本書の場合は送信直後に console.typesafe.ai へログインできた（待機時間なし）。
 3. 「Meet Jev」の案内 → 「Can you chat with Jev?」のクイズ（答えは No）→ コンソール。
 4. 左メニュー「API Keys」でキーを発行し、環境変数 `TYPESAFE_API_KEY` に入れる。
-5. コンソールの Quickstart に Claude Code 用プラグイン（`claude plugin marketplace add typesafe-ai/skills` → `claude plugin install typesafe@typesafe-ai`）の案内あり。
+5. コンソールの構成: Home（Cookbooks・Demos・Quickstart）、Playground（state と questions を JSON で書いて `jev-latest` に Run。
+   Noul / Choice / Score の練習問題 3 本と、実務例「Resumé screening」「Support agent audit」「Helpdesk ticket triage」が同梱）、Usage、API Keys。
+   Cookbook には「Parallel questions（13 問を 1 回にまとめると 11.5 倍安く 9.6 倍速い）」「SDE cascade（mini → verify → reasoning の 2 段抽出）」
+   「Self-consistency（同じ入力に対する Noul の安定性）」、Demo に「Wikirace（1.7 秒で 6 判定）」「Smart home assistant（先回り質問＋LLM フォールバック）」がある。[^console]
+6. コンソールの Quickstart に Claude Code 用プラグイン（`claude plugin marketplace add typesafe-ai/skills` → `claude plugin install typesafe@typesafe-ai`）の案内あり。
    本環境では 2026-09-19 に導入済み（typesafe@typesafe-ai v0.5.7、user スコープ）。中身は docs.typesafe.ai の読み方と設計指針を示す SKILL.md で、
    実行コマンドは含まない。設計時は https://docs.typesafe.ai/llms.txt から該当ページ（`.md` を付けると Markdown で読める）を参照する。
 
@@ -471,6 +477,7 @@ const state = {
 [^pypi-shim]: PyPI `typesafe-ai` 0.1.0（リダイレクト用シム、TypeSafe 非公式） https://pypi.org/project/typesafe-ai/
 [^npm]: npm `@typesafe-ai/sdk` 0.6.0 https://www.npmjs.com/package/@typesafe-ai/sdk
 [^cf-pricing]: Cloudflare Workers AI Pricing https://developers.cloudflare.com/workers-ai/platform/pricing/
+[^console]: TypeSafe コンソール https://console.typesafe.ai/ の Home / Playground / Usage 画面（2026-09-19 のスクリーンショットより）
 [^cf-billing]: Cloudflare AI Gateway「Unified Billing」 https://developers.cloudflare.com/ai-gateway/features/unified-billing/ と、2026-09-19 の実測エラー（402 code 2021）
 [^cf-dash]: Cloudflare ダッシュボード AI > Models > typesafe/Jev（2026-09-19 のスクリーンショットより。Pricing・Context length・Quick Start の表示）
 [^henteko]: Zenn（henteko）「Cloudflare WorkersでJevを使ったら高速か検証してみた」 https://zenn.dev/henteko/articles/1d159d10413312 （検索結果の要約から引用）
