@@ -96,27 +96,31 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 5. **第 3 の経路: Vercel AI Gateway** に `typesafe-ai/jev` が同単価（$0.042/1M 入力）で掲載。AI SDK の `evaluate({model, state, questions})` 形式。
    Vercel アカウントと課金設定が必要。ユーザーの Vercel アカウント有無は未確認。OpenRouter は 404 で不可。 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
 
-## 次セッションの開始手順（2026-09-19 08:40 JST 更新: 組み込み先 2 → 3 へ）
+## 次セッションの開始手順（2026-09-19 09:10 JST 更新: 組み込み先 2 配備済み・再起動待ち → 3 へ）
 0. 組み込み先 1 は完了・VM 配備済み（下の「08:31 JST 確定版」参照）。触らない。
-1. 組み込み先 2（中止・指摘の検知）の対象は `~/Documents/Claude/OpenClaw_Pinay/plugins/` の 2 つ:
-   - `stop-word-gate/index.js`（114 行）: message_received で短文（12 文字以内）が語彙と**完全一致**なら記録、before_tool_call を block。
-   - `pushback-debug-inject/index.js`（135 行）: before_prompt_build（priority 90）で本文（2000 文字以内）に語彙が**部分一致**なら
-     デバッグ 3 ステップを prependContext。親セッションは before_prompt_build が message_received より先に走る（実機 2026-09-12）。
-   - テストは `tests/test_stop_word_gate_plugin.mjs` / `tests/test_pushback_debug_inject_plugin.mjs`（node。**Mac に node が無い**ので VM で実行）。
-   - 既存プラグインは環境変数を `process.env` で直接読む（`_shared/index.js` に OPENCLAW_HOME ヘルパー）。TypeSafe のキーは
-     VM `~/.openclaw/.env` に足す想定（gateway が .env を読むかは未確認。読まなければ openclaw.json の plugin config で渡す）。
-2. 設計（handover 済み・実測済み）: キーワード一致を第 1 段（そのまま）、未一致だけ JEV Noul を第 2 段。
-   - **先に確認する事項**: OpenClaw の hook runner が async ハンドラ（Promise）を await するか。await しないなら JEV を
-     before_prompt_build / before_tool_call の同期経路に入れられず、message_received で先読みして記録する方式に限る。
-     gateway の dist で `message_received` / `before_prompt_build` の呼び出し箇所を grep して確かめる。
-   - JEV 呼び出しは Node の `fetch`（`https://api.typesafe.ai/v1/systemone`、Bearer キー、`{model:"jev-latest", state, questions}`）。
-     質問文は Python 版 `OpenClaw_QA_chat/backend/support_triage.py` の書き方に合わせる（context＋本文を named field、criteria に true/false）。
-   - 中止: Noul「この短い発言は、いま実行中の作業を止めてほしいという指示か」。引っかけ否定（「中止せずに続けて」）は false。
-   - 指摘: Noul「依頼者は直前の回答や結果が間違っている・期待と違うと指摘しているか」。
-   - 閾値・タイムアウト（1 秒程度）・失敗時は第 1 段の結果のまま、をコードで担保。実測サンプル（言い換え・引っかけ否定 9 件）は
-     前セッションのログにしか無いので、新セッションで 20 件程度を作り直して JEV に掛ける（`client/jev_client.py` で可）。
-3. 組み込み先 3（pinay_pick 再ランキング）: `plugins/pinay-picklist/index.js`（600 行超、python 実行あり）と
-   `vm_samples/suzuki_queries.txt`（実質問 42 件）。行ごとの自由記述に Noul / Choice を一括判定。設計は 2 の後。
+1. 組み込み先 2（中止・指摘の検知）は **実装・VM 配布済み。gateway 再起動で有効になる**（再起動は本人が時間を選んで
+   `sudo systemctl restart openclaw`。journal に `[stop-word-gate]` / `[pushback-debug-inject]` の registered 行と、
+   `TYPESAFE_API_KEY が無いため` の警告が**出ない**ことを確認する）。
+   - 確認した前提: gateway の hook runner は async ハンドラを await する（`~/openclaw/dist/hook-runner-global-*.js` の
+     `runVoidHook`（並列・各 hook にタイムアウト）と `runModifyingHook`（優先順に逐次）。`before_tool_call` / `before_prompt_build` は
+     15 秒打ち切り）。よって JEV は同期経路（before_prompt_build / message_received）に入れられる。
+     `~/.openclaw/.env` は起動時に `process.env` へ読み込まれる（`dist/dotenv-global` の `loadGlobalRuntimeDotEnvFiles`。
+     systemd の unit は `openclaw.service`、Environment は OPENCLAW_HOME と GOOGLE_* だけ）。
+   - 成果物（OpenClaw_Pinay、ブランチ feat/ops-contract-automation 上にコミット）:
+     `plugins/_shared/jev.js`（fetch＋AbortController、fail-open）、`plugins/stop-word-gate/index.js`（`onMessageJev`、
+     既定 threshold 0.8 / maxChars 40）、`plugins/pushback-debug-inject/index.js`（`onPromptBuildJev`、既定 0.7 / 300）、
+     両 `openclaw.plugin.json` に `jev` 節、`tests/test_shared_jev.mjs`（4 件）＋既存 2 本に第 2 段の検証を追加（VM node 22 で全通過）。
+     docs は `docs/stop-word-gate-plugin.md` / `docs/pushback-debug-inject-plugin.md` / `docs/plugin-shared.md`。
+   - 質問文と実測: `scripts/measure_stop_pushback.py`（このリポジトリ）。40 件全件正解。中止: true 0.94〜0.98 / false 0.02〜0.08。
+     指摘: true 0.84〜0.96 / false 0.01〜0.40（最大は「違いがあれば教えて」0.40）。往復 200〜660 ms、VM から 460〜650 ms。
+     結果は `vm_samples/jev_stop_pushback_v1.json`（git 除外）。
+   - VM `~/.openclaw/.env` に `TYPESAFE_API_KEY` を追加済み（値は Mac の `JEV-UsageGuide/.env` と同じ）。VM の deployed code で
+     実呼び出し 2 件成功。
+   - 未了: 再起動後の実機 e2e（Chat DM から「そこまでで結構です」→ journal に `source=jev`、「それ違うよ」→ `injected … source=jev`）。
+     CLI agent は message_received を発火しないので DM から送る。自動化台帳は既存項目の実体更新＋改善記録（新項目にしない）。
+2. 組み込み先 3（pinay_pick 再ランキング）: `plugins/pinay-picklist/index.js`（600 行超、python 実行あり）と
+   `vm_samples/suzuki_queries.txt`（実質問 42 件）。行ごとの自由記述に Noul / Choice を一括判定。JEV 呼び出しは `plugins/_shared/jev.js`
+   を使う（Noul 1 問固定なので、複数質問・Choice が要るなら `createNoulAsker` を汎用化する）。
 
 ## 次セッションの開始手順（2026-09-19 引継・旧）
 1. 作業ディレクトリは `~/Documents/Claude/JEV-UsageGuide/`（独立リポ、GitHub nizki-kasaph/ClaudeCode main）。`.env` に TYPESAFE_API_KEY / CLOUDFLARE_* 設定済み。
