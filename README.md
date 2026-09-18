@@ -14,7 +14,11 @@ TypeSafe AI の判定専用モデル JEV の使い方を、AGI ラボの解説�
 ## 未完了
 
 - 元記事 §6-1 の後半と §6-2〜§6-4 は PDF に含まれておらず未転記（2026-09-19 時点、サイト側エラーで再取得できず）。
-- GitHub への反映は未着手。前セッションの想定先は `nizki-kasaph/ClaudeCode`（空リポジトリ）。
+- JEV を呼べる環境は未整備。公式 API は招待待ち。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。
+
+## リポジトリ
+
+https://github.com/nizki-kasaph/ClaudeCode（`main` に直 push、2026-09-19）
 
 ## 他プロジェクトで使うときの最短経路
 
