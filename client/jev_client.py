@@ -1,10 +1,10 @@
 """JEV（TypeSafe 判定専用モデル）の最小クライアント。
 
 経路は環境変数で切り替える。
-  JEV_BACKEND=cloudflare（既定） … Cloudflare Workers AI REST
-      CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN が必要
-  JEV_BACKEND=typesafe            … TypeSafe 公式 API
-      TYPESAFE_API_KEY が必要（早期アクセス招待後）
+  JEV_BACKEND=typesafe（既定）   … TypeSafe 公式 API（2026-09-19 実測済み。日本から 200〜270 ms、初回のみ約 600 ms）
+      TYPESAFE_API_KEY が必要
+  JEV_BACKEND=cloudflare          … Cloudflare Workers AI REST
+      CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN が必要。AI Gateway クレジット（前払い）が無いと 402
 
 質問の書式は docs/jev-usage-guide.md §5 の生 JSON と同じ。
 """
@@ -40,7 +40,7 @@ def load_env(path: Optional[Path] = None) -> None:
 class JevClient:
     def __init__(self, backend: Optional[str] = None, timeout: float = 30.0) -> None:
         load_env()
-        self.backend = (backend or os.getenv("JEV_BACKEND", "cloudflare")).lower()
+        self.backend = (backend or os.getenv("JEV_BACKEND", "typesafe")).lower()
         self.timeout = timeout
         self.session = requests.Session()  # 接続を使い回す（往復 0.3 秒の節約）
         if self.backend == "cloudflare":

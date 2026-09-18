@@ -403,6 +403,29 @@ const state = {
 
 ---
 
+## 本書での実測（2026-09-19、横浜、TypeSafe 公式 API 直接）
+
+`client/jev_client.py` で公式 API を呼んだ結果。記事の「公式 API を直接呼ぶ 0.16〜0.44 秒」と整合する。
+
+| 呼び出し | 応答時間 | 備考 |
+| --- | --- | --- |
+| 記事 §5 の例（Noul + Choice + Score、state 1 文） | 645 ms | セッション新規。`is_urgent` 0.98、`department` billing 0.85、`frustration` 1.88（激怒 0.88） |
+| 日本語メール返信要否（Noul + Choice、state は JSON 4 項目・661 トークン）1 回目 | 599 ms | 接続確立を含む |
+| 同 2〜4 回目（`requests.Session` で接続再利用） | 205〜269 ms | `needs_reply` 0.96〜0.97、`category` request（confidence 0.99〜1.00）で安定 |
+
+- 日本語の state・質問・選択肢の説明文は、そのままで問題なく判定できた。
+- Score の応答には記事に無い `legend`（段階番号と説明文の対応表）が含まれる。
+- `usage.output_tokens` は返るが課金は入力のみ。
+- **Cloudflare 経由は本書では実測できず。** 第三者モデルは AI Gateway の前払いクレジットが必要で、本アカウントでは決済（複数カード・PayPal）が Cloudflare 側で通らなかった。
+
+### 公式コンソールでの入手手順（2026-09-19 時点の実際）
+
+1. https://typesafe.ai/ 右上の「Join Waitlist」からメールアドレスを送信。GitHub プロフィール、作ったもの、知った経緯などの質問が続く。
+2. 本書の場合は送信直後に console.typesafe.ai へログインできた（待機時間なし）。
+3. 「Meet Jev」の案内 → 「Can you chat with Jev?」のクイズ（答えは No）→ コンソール。
+4. 左メニュー「API Keys」でキーを発行し、環境変数 `TYPESAFE_API_KEY` に入れる。
+5. コンソールの Quickstart に Claude Code 用プラグイン（`claude plugin marketplace add typesafe-ai/skills` → `claude plugin install typesafe@typesafe-ai`）の案内あり。
+
 ## 付録: 実装時の落とし穴（実測ベース）
 
 以下は元記事の範囲外だが、実際に使う際に効く注意点である。出典はすべて mizchi 氏の実測レポート。[^mizchi-api][^mizchi-practice]

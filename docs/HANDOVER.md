@@ -14,7 +14,13 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
   記事が有料部分に続くか、PDF 化が途中で止まったかは未確認。
 - **GitHub 反映済み（2026-09-19）。** `~/Documents/Claude/JEV-UsageGuide/` を独立リポジトリとして `nizki-kasaph/ClaudeCode` の `main` に直 push した。前セッションのブランチ `claude/organize-usage-guide-8tdmh6` は使わない。
 
-## ブロッカー
+## 2026-09-19 深夜の到達点
+- **TypeSafe 公式 API で JEV の実測に成功。** 待機リスト送信直後に console.typesafe.ai にログインでき、API キーを発行。
+  `.env` に `TYPESAFE_API_KEY` を追加し、`python3 client/jev_client.py`（既定 `JEV_BACKEND=typesafe`）で Noul / Choice / Score が返った。
+  応答時間: 初回 600〜650 ms、接続再利用で 205〜269 ms。日本語 state で問題なし。詳細はガイド「本書での実測」。
+- Cloudflare 経路は課金ブロックのため未実測のまま（コードは残してある）。
+
+## ブロッカー（解消済みを含む履歴）
 1. **§6 の残りが未取得。** 元記事を最後まで PDF 化し直す（ブラウザの「ページ全体を保存」で 12 ページ以降も含める）か、本文を貼り付ける。
 2. **Cloudflare 経由の呼び出しは残高待ち。** `client/jev_client.py` を作成し、正しい REST 形式（`/ai/run` に `{"model","input"}`）まで到達したが、
    `402 Insufficient balance; add money to your gateway or use BYOK` で止まっている。第三者モデルは Workers AI の Neuron 無料枠ではなく
@@ -30,8 +36,7 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 
 ## 次にやること（順番）
 1. 元記事の §6 残りを入手し、`jev-usage-guide.md` の「6-1 質問は2つを1回で」以降と「6-2〜6-4（未取得）」を埋める。
-2. 使える経路が決まったら `python3 client/jev_client.py` を実行し、Noul / Choice / Score が返ることと所要時間を記録する。Node は不要（REST 直呼び）。
-   経路の優先順: TypeSafe 招待が来たら公式（`TYPESAFE_API_KEY`）→ Cloudflare（PayPal で入金できれば）→ Vercel AI Gateway（クライアントに未実装、要追加）。
+2. 公式 API で実測済み。次は実用途への組み込み（メール返信要否判定など）。コンソールの Usage で消費量・課金の表示を確認し、料金節に反映する。
 
 ## 参照ファイル
 - `docs/jev-usage-guide.md` … 成果物（改訂版）
