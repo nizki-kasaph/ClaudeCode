@@ -425,6 +425,8 @@ const state = {
 3. 「Meet Jev」の案内 → 「Can you chat with Jev?」のクイズ（答えは No）→ コンソール。
 4. 左メニュー「API Keys」でキーを発行し、環境変数 `TYPESAFE_API_KEY` に入れる。
 5. コンソールの Quickstart に Claude Code 用プラグイン（`claude plugin marketplace add typesafe-ai/skills` → `claude plugin install typesafe@typesafe-ai`）の案内あり。
+   本環境では 2026-09-19 に導入済み（typesafe@typesafe-ai v0.5.7、user スコープ）。中身は docs.typesafe.ai の読み方と設計指針を示す SKILL.md で、
+   実行コマンドは含まない。設計時は https://docs.typesafe.ai/llms.txt から該当ページ（`.md` を付けると Markdown で読める）を参照する。
 
 ## 付録: 実装時の落とし穴（実測ベース）
 

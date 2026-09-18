@@ -19,6 +19,7 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
   `.env` に `TYPESAFE_API_KEY` を追加し、`python3 client/jev_client.py`（既定 `JEV_BACKEND=typesafe`）で Noul / Choice / Score が返った。
   応答時間: 初回 600〜650 ms、接続再利用で 205〜269 ms。日本語 state で問題なし。詳細はガイド「本書での実測」。
 - Cloudflare 経路は課金ブロックのため未実測のまま（コードは残してある）。
+- Claude Code に TypeSafe プラグイン導入済み（typesafe@typesafe-ai v0.5.7、user スコープ）。新しいセッションから `typesafe-ai` スキルが使える。
 
 ## ブロッカー（解消済みを含む履歴）
 1. **§6 の残りが未取得。** 元記事を最後まで PDF 化し直す（ブラウザの「ページ全体を保存」で 12 ページ以降も含める）か、本文を貼り付ける。
