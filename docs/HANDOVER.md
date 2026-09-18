@@ -42,6 +42,25 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
   → 設計: JEV is_customer ≥ 閾値 → 差出人 email で customers → 直近イベントへ記録。顧客だが未一致なら Chat 通知（人が No. を付ける）。
 - 組み込み先 2（中止・指摘の検知）はローカル実測済み: 言い換え全検知、引っかけ否定 9 件全て非検知、境界帯は既存キーワードで補完する二段構成。
 
+## 2026-09-19 午後: 組み込み先 1 を実装（ローカル検証済み・VM 未配備）
+- 実装先はワークスペースの正本 `~/Documents/Claude/OpenClaw_QA_chat/backend/`（VM `~/mugi-relay/` と同一だったことを diff で確認）。
+  - 新規 `support_triage.py`: JEV 3 問（Noul is_customer / Choice category 7 択 / Score urgency 3 段）を 1 リクエスト、
+    台帳 `pinay_ledger.sqlite3` を読み取り専用で開き `customers.email`（小文字・trim 比較）→ その顧客の最新イベント
+    （`COALESCE(updated_at, registered_at, occurred_at)` 降順、`deleted_at IS NULL`）。閾値は冒頭の定数 `CUSTOMER_THRESHOLD=0.15` / `URGENT_THRESHOLD=1.5`。
+  - `gmail_intake.py` の変更: 本文空チェック → JEV → 非顧客は No. があっても skip / 顧客＋No. あり → その No. / 顧客＋No. なし → 台帳の最新イベント /
+    引けない・イベント無し・複数一致 → `chat_notify.send` で通知し台帳に `notified` として記録（ラベルは付けない）/ 緊急度 ≥ 1.5 は記録＋通知。
+    社内差出人（@pinay.jp）は JEV を通さず従来動作。JEV 未応答時は No. ありなら従来どおり記録、No. なしなら台帳に残さず次回再試行。
+  - テスト `backend/tests/test_support_triage.py`（18 件）と `backend/tests/test_gmail_intake_flow.py`（Gmail・bay・Chat・JEV・台帳を偽物にした流れ 2 件）が全て通る。
+- **新質問文の実測（40 通、10.7 秒、入力 64,753 トークン ≒ $0.003）**: `vm_samples/jev_results_v2.json`。
+  非顧客 0.01〜0.04（TOTO 自動送信の No.1309 誤検出も 0.02 で skip に変わる）。旧版で 0.13〜0.53 だった法人窓口
+  （林誠一 / YABE / Liu Wenwen / Philix / 村上）は 0.83〜0.94 に上がり顧客側に確定。残る境界は TRIO STYLE の 0.22 / 0.24
+  （営業寄りの取引先。閾値 0.15 の上なので顧客扱い → No. なし → 台帳未一致なら通知、人が判断）。
+  緊急度 ≥ 1.5 は「明日の予約の件」1.99 と Philix の日程連絡 1.57 の 2 通。
+- 台帳照合は VM の実データでは未実行（ローカルに台帳が無い）。`customers.email` に複数アドレスが入る行があれば完全一致で漏れる（要 VM dry-run で確認）。
+- **配備手順（未実施）**: (1) VM `~/mugi-relay/gmail_intake.py` を backup-YYYYMMDD で退避 (2) `support_triage.py` と `gmail_intake.py` を配置
+  (3) `~/mugi-relay/.env` に `TYPESAFE_API_KEY` を追加（support_triage は `mugi-relay/.env` → `~/.openclaw/.env` の順で読む）
+  (4) `.venv/bin/python3 gmail_intake.py --dry-run --days 60 --limit 40` で action / jev / reason を目視 (5) 問題なければ cron に任せる。
+
 ## ブロッカー（解消済みを含む履歴）
 1. **§6 の残りが未取得。** 元記事を最後まで PDF 化し直す（ブラウザの「ページ全体を保存」で 12 ページ以降も含める）か、本文を貼り付ける。
 2. **Cloudflare 経由の呼び出しは残高待ち。** `client/jev_client.py` を作成し、正しい REST 形式（`/ai/run` に `{"model","input"}`）まで到達したが、
@@ -63,7 +82,7 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
    - 差し込み位置: gmail_intake.py の load_message 後・post_event_detail 前。JEV 3 問（is_customer / category / urgency）を 1 リクエスト。
    - 「顧客」の定義は法人客の窓口・取引先担当者を含む（ユーザー確定）。
    - 顧客 → 差出人 email で pinay_ledger.sqlite3 の customers → events（直近）へ記録。未一致は Chat 通知。
-   - 未決: 記録先イベントの選び方（未完了直近 or 最新）、通知先スペース。
+   - 確定（2026-09-19 ユーザー回答）: 記録先は該当顧客の**最新**イベント。通知は既存の chat_notify（仁月さん・土屋さんの DM）。
 4. 組み込み先 2（stop-word-gate / pushback-debug-inject）: キーワード一致を第 1 段、未一致のみ JEV Noul（Node fetch、~/.openclaw/.env のキー）。実測済みの質問文は本セッションのログ参照（HANDOVER の実測節）。
 5. 組み込み先 3（pinay_pick 再ランキング）: `vm_samples/suzuki_queries.txt` の質問型に対し、行ごとの自由記述へ Noul / Choice を一括判定。
 6. すべてローカル（dry-run）で検証してから VM へ 1 回だけ配備。VM 上のファイル変更前にバックアップ（既存慣行 backup-YYYYMMDD）。
