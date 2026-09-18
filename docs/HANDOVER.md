@@ -57,7 +57,16 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
   （営業寄りの取引先。閾値 0.15 の上なので顧客扱い → No. なし → 台帳未一致なら通知、人が判断）。
   緊急度 ≥ 1.5 は「明日の予約の件」1.99 と Philix の日程連絡 1.57 の 2 通。
 - 台帳照合は VM の実データでは未実行（ローカルに台帳が無い）。`customers.email` に複数アドレスが入る行があれば完全一致で漏れる（要 VM dry-run で確認）。
-- **配備手順（未実施）**: (1) VM `~/mugi-relay/gmail_intake.py` を backup-YYYYMMDD で退避 (2) `support_triage.py` と `gmail_intake.py` を配置
+- **VM 配備済み（2026-09-19 07:45 JST）**: `~/mugi-relay/gmail_intake.py`（退避 `gmail_intake.py.backup-20260919`）と `support_triage.py` を配置、
+  `~/mugi-relay/.env` に `TYPESAFE_API_KEY` を追加。VM 上の dry-run（実データ 40 通）: 記録 18 / 通知 8 / 対象外 14 / 失敗 0。
+  台帳の日付は ISO 形式で最新イベント選択は正常（`updated_at` は空なので `registered_at` で代替）。複数一致の 2 件（cn11@docomo / mmjgd22）は
+  実際に顧客 ID が 2 つあるため通知が正しい。取引先 YABE（alj-jro.com）は台帳に無く通知。
+- **追加ルール（配備時に発見）**: 本文の別の数字を No. と誤検出した 973698（台帳の最大 No. 57,513 の範囲外）が CRM の「イベントIDエラー」で
+  15 分ごとに 140 回失敗し続けていた。`event_no_plausible`（台帳に存在 or 最大 No.+500 以内）を通らない No. は「No. なし」として
+  差出人照合→通知へ回す。差し替え後の dry-run で当該メールは notify に変わった。
+- **未処理の過去分**: 配備前に「イベントNo.を特定できず」で台帳に記録済みの顧客メール（直近 60 日で約 19 通）は already_seen で再処理されない。
+  取り込みたい場合は intake 台帳の該当行を消して cron に拾わせる（ユーザー判断待ち）。
+- 配備手順（参考・実施済み）: (1) VM `~/mugi-relay/gmail_intake.py` を backup-YYYYMMDD で退避 (2) `support_triage.py` と `gmail_intake.py` を配置
   (3) `~/mugi-relay/.env` に `TYPESAFE_API_KEY` を追加（support_triage は `mugi-relay/.env` → `~/.openclaw/.env` の順で読む）
   (4) `.venv/bin/python3 gmail_intake.py --dry-run --days 60 --limit 40` で action / jev / reason を目視 (5) 問題なければ cron に任せる。
 
