@@ -132,9 +132,19 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
      実呼び出し 2 件成功。
    - 未了: 再起動後の実機 e2e（Chat DM から「そこまでで結構です」→ journal に `source=jev`、「それ違うよ」→ `injected … source=jev`）。
      CLI agent は message_received を発火しないので DM から送る。自動化台帳は既存項目の実体更新＋改善記録（新項目にしない）。
-2. 組み込み先 3（pinay_pick 再ランキング）: `plugins/pinay-picklist/index.js`（600 行超、python 実行あり）と
-   `vm_samples/suzuki_queries.txt`（実質問 42 件）。行ごとの自由記述に Noul / Choice を一括判定。JEV 呼び出しは `plugins/_shared/jev.js`
-   を使う（Noul 1 問固定なので、複数質問・Choice が要るなら `createNoulAsker` を汎用化する）。
+2. 組み込み先 3（pinay_pick の判定 `judge`）: **実装・VM 配布済み・再起動待ち**（2026-09-20 23:00 JST）。
+   - 形: `pinay_pick` ツールの引数 `judge`（条件文）で一体に呼ぶ（別ツールの 2 段は Mugi が 2 段目を飛ばす等の理由で不採用・本人確認）。
+     プラグインが pinay_pick → `scripts/pinay_judge.py --saved … --criterion …` を続けて実行。docs は `OpenClaw_Pinay/docs/pinay-judge.md`。
+   - 判定: 20 行を 1 回にまとめて Noul（`scripts/measure_judge_batch.py`、合成 60 行: まとめ呼び 56/60・0.3〜0.7 秒、1 行ずつ 52/60・6〜7 秒）。
+     該当 0.6 以上／要確認 0.25〜0.6／非該当。VM 実データ（遅刻 20 行）1.4 秒で該当 9・要確認 3・非該当 8。同じ文が並び位置で 0.60 と 0.11 に割れた例あり。
+   - `vm_samples/suzuki_queries.txt` は 12 問（旧記載の 42 件は誤り）。列で絞れる条件（引越し→progress_detail「顧客の引越／転勤／帰国」、不明）は
+     プラグインの REASON_SYNONYMS で既に対応済み。judge は自由記述を読む条件（迷子・鍵の話など）用。
+   - 成果物: `scripts/pinay_judge.py`・`scripts/jev_noul.py`（`ask_many` 追加）・`plugins/pinay-picklist/index.js`（`judgeSaved`、judge 引数、
+     判定件数を【この数字を使う】に）・`tests/test_pinay_judge.py`（7 件）・`tests/test_pinay_picklist_judge.mjs`（VM node 通過）。
+     pinay-picklist の index.js は 9/16 の未コミット別作業と同居しているため、judge を含む hunk だけを部分ステージしてコミット。
+   - 再起動後の確認: Chat DM から「今期の遅刻イベントで、迷子や乗り間違いが理由のものを出して」→ journal に `[pinay-picklist] judged criterion=…`、
+     本文先頭に「【この数字を使う】判定件数」。AGENTS.md には足していない（ツール説明で誘導。必要なら 1 行だけ）。
+3. 残り: 自動化台帳（既存項目の実体更新＋改善記録）。元記事 §6-1 後半〜§6-4 の転記（PDF 未取得）。
 
 ## 次セッションの開始手順（2026-09-19 引継・旧）
 1. 作業ディレクトリは `~/Documents/Claude/JEV-UsageGuide/`（独立リポ、GitHub nizki-kasaph/ClaudeCode main）。`.env` に TYPESAFE_API_KEY / CLOUDFLARE_* 設定済み。
