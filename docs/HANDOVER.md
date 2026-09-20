@@ -144,7 +144,15 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
      pinay-picklist の index.js は 9/16 の未コミット別作業と同居しているため、judge を含む hunk だけを部分ステージしてコミット。
    - 再起動後の確認: Chat DM から「今期の遅刻イベントで、迷子や乗り間違いが理由のものを出して」→ journal に `[pinay-picklist] judged criterion=…`、
      本文先頭に「【この数字を使う】判定件数」。AGENTS.md には足していない（ツール説明で誘導。必要なら 1 行だけ）。
-3. 残り: 自動化台帳（既存項目の実体更新＋改善記録）。元記事 §6-1 後半〜§6-4 の転記（PDF 未取得）。
+3. relay 側 3 件（2026-09-20 23:40 JST、本人決定・配備・再起動済み。OpenClaw_Pinay `568542d` / `b335cbf`）:
+   - teach.py「同じ質問か」: difflib 未一致だけ JEV（閾値 0.6、20 件ずつ）。実データ 1,430 組で 1,416 組一致・食い違いは JEV 側が妥当。
+   - qa_audit: Gemini 判定を残し、ok 行だけ JEV「裏付け無し断定」0.7 以上で suspicious＋要確認 note（案 1）。JEV 単独は Gemini と 76% 一致だったため全面置換せず。
+   - qa_weekly.verify_candidate: JEV 合否 0.6 → 合格だけ Gemini 引用（案 1）。壊した答え 18/18 拒否・ページ由来 8/11 合格。
+   - Gemini は gemini-flash-latest に統一（qa_audit / reply_drafts / deliver_minutes。deliver_minutes は Meet 側の配布が別途）。
+   - 実測スクリプト `OpenClaw_Pinay/mugi_relay/measure_jev.py`（VM ~/mugi-relay で読み取りのみ）。結果は VM /tmp/measure_jev*.json（保存していない）。
+   - 次の実機確認: qa_audit は 15 分毎 cron（relay venv・.env 読込あり）→ logs/qa_audit.log に「要確認（JEV」が出るか。週次 QA は日曜 18:30 UTC。
+4. gateway 再起動済み（2026-09-20 23:01 JST、34 プラグイン、キー警告 0）。Chat DM からの e2e（stop / pushback / judge）は未実施。
+5. 残り: 自動化台帳（既存項目の実体更新＋改善記録）。元記事 §6-1 後半〜§6-4 の転記（PDF 未取得）。JEV 候補として未確認: line-asana-triage（Cloud Run・別リポジトリ）。
 
 ## 次セッションの開始手順（2026-09-19 引継・旧）
 1. 作業ディレクトリは `~/Documents/Claude/JEV-UsageGuide/`（独立リポ、GitHub nizki-kasaph/ClaudeCode main）。`.env` に TYPESAFE_API_KEY / CLOUDFLARE_* 設定済み。
