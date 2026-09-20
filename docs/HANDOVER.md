@@ -96,6 +96,14 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 5. **第 3 の経路: Vercel AI Gateway** に `typesafe-ai/jev` が同単価（$0.042/1M 入力）で掲載。AI SDK の `evaluate({model, state, questions})` 形式。
    Vercel アカウントと課金設定が必要。ユーザーの Vercel アカウント有無は未確認。OpenRouter は 404 で不可。 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
 
+## 切替完了の確認（2026-09-21 06:00 JST）
+- LineMessengerAPI は別セッションで VM 化済み（`~/line-messenger-api`、systemd、Funnel /line-messenger、LineMessengerAPI `8022c05` 未 push）。
+  line-asana-triage は本人が MESSENGER_API_URL を VM の URL に更新（revision 00018）。
+- 05:40 JST の LINE 再送を 06:00 の定時ジョブが処理: 社員照合 土屋克彦、同じ依頼者の候補 12 件から 04:33 の自分のタスク 1218666987239675 に
+  0.99 で一致 → 新規タスク無し・コメント追記・受領メール・受領通知。VM journal に Cloud Run 発（IPv6 2600:1900:…）の
+  `POST /line-messenger/send-chat` 200 と配信完了（21:00:39 UTC）。重複判定と VM 経由通知の e2e はこれで合格。
+- 残り: 07:00 JST 定時連絡の VM journal 確認、旧 Cloud Run line-messenger-api の削除（本人判断）、自動化台帳（AI_today）、各リポジトリの push。
+
 ## 次にここで続けること（2026-09-21 05:40 JST・LineMessengerAPI の VM 移設は別セッションで実施）
 - 前提: 別セッションで LineMessengerAPI を VM に載せ、Funnel の URL（例 https://openclaw-gateway.tail5cdb61.ts.net/line-messenger/send-chat）が決まる。
   採取済みの事実は `LineMessengerAPI/`（3,044 行・8001・Firestore 4 コレクション・playwright 1.60.0・Cloud Run env 56 個中コードが読むのは 17 個）、
