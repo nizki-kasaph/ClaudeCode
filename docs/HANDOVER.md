@@ -96,6 +96,19 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 5. **第 3 の経路: Vercel AI Gateway** に `typesafe-ai/jev` が同単価（$0.042/1M 入力）で掲載。AI SDK の `evaluate({model, state, questions})` 形式。
    Vercel アカウントと課金設定が必要。ユーザーの Vercel アカウント有無は未確認。OpenRouter は 404 で不可。 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
 
+## 次にここで続けること（2026-09-21 05:40 JST・LineMessengerAPI の VM 移設は別セッションで実施）
+- 前提: 別セッションで LineMessengerAPI を VM に載せ、Funnel の URL（例 https://openclaw-gateway.tail5cdb61.ts.net/line-messenger/send-chat）が決まる。
+  採取済みの事実は `LineMessengerAPI/`（3,044 行・8001・Firestore 4 コレクション・playwright 1.60.0・Cloud Run env 56 個中コードが読むのは 17 個）、
+  VM 空き 2.6GB／13GB、Funnel 11 パス稼働、SA は Cloud Run と同じ。8/15 実測の峰 2.1GiB。
+- こちらの続き:
+  1. line-asana-triage の環境変数 MESSENGER_API_URL を新 URL に設定（`gcloud run services update --update-env-vars`。コードは `2392c86` で対応済み・配備済み）。
+  2. Chat DM ではなく LINE で受領通知の e2e（同じ文面を再送 → 自分のタスクへの追記＋LINE 通知が VM 経由で届く）。
+  3. Cloud Run の line-messenger-api を停止（呼び出し元が無くなれば自動で 0 台。削除は本人判断）。
+  4. 自動化台帳: line-asana-triage の実体更新＋改善記録（重複判定・api_mgmt トークン・台帳シート変換・終日化）、LineMessengerAPI の where を VM に更新（AI_today）。
+  5. 4 リポジトリの push 要否。
+- 済んだこと: Cloud Scheduler 終日化（*/15 * * * *）、台帳 JSON/AUTOMATIONS.md の稼働時間文言更新（OpenClaw_Pinay `3b56006`）。
+- 30 日の実額（8/21〜）: Cloud Run 6,304 円のうち line-messenger-api が 350 時間（常時 CPU 割当）で大半、line-asana-triage は 0.3 時間。VM は 4,043 円。
+
 ## line-asana-triage 実機 e2e と追加修正（2026-09-21 03:30〜04:00 JST）
 - 03:48 JST に本人が LINE 送信 → 15 分ジョブは 7〜23 時 JST のみなので手動で /triage-check を叩いた。重複判定は 9/17 の石田さん（別 LINE）の
   同じ依頼に 0.98 で当たり、石田さんのタスクへ追記した（新規タスク・ピナイ登録なし）。本人指摘「別の人にしてる」→ 候補を同じ依頼者
