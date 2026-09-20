@@ -96,6 +96,18 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 5. **第 3 の経路: Vercel AI Gateway** に `typesafe-ai/jev` が同単価（$0.042/1M 入力）で掲載。AI SDK の `evaluate({model, state, questions})` 形式。
    Vercel アカウントと課金設定が必要。ユーザーの Vercel アカウント有無は未確認。OpenRouter は 404 で不可。 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
 
+## line-asana-triage 実機 e2e と追加修正（2026-09-21 03:30〜04:00 JST）
+- 03:48 JST に本人が LINE 送信 → 15 分ジョブは 7〜23 時 JST のみなので手動で /triage-check を叩いた。重複判定は 9/17 の石田さん（別 LINE）の
+  同じ依頼に 0.98 で当たり、石田さんのタスクへ追記した（新規タスク・ピナイ登録なし）。本人指摘「別の人にしてる」→ 候補を同じ依頼者
+  （notes【要望】が氏名か「LINE名: 表示名」に一致）に限定（`d6a…` 相当・revision 00015）。
+- 社員台帳が 7/29 以降ずっと 400: 参照先 142NCJ… は共有ドライブの「社員LINEリスト.xlsx」（Office 形式）で Sheets API 非対応。しかも
+  サービスの Firestore トークン google_token は tk5670.biz@gmail.com で、そのファイルは見えない。本人指定で api_mgmt@pinay.jp の
+  `system_config/workspace_token`（10 scope）を使う: sheets_auth に GOOGLE_TOKEN_DOC（既定 google_token、更新後の保存先も同じ文書）。
+  api_mgmt の権限で xlsx を Drive copy でスプレッドシート化 → ID `1iApS81GWf-5eE2V6Ux3qpyHAlFUYiQUu6Htdm4V5ccY`（共有ドライブ直下・列順は
+  氏名/部署/LINE表示名/MailAddress・27 名。9/14 更新の「社員LINE送信用」1FSx2… は 32 名で列順が違う）。EMPLOYEE_SPREADSHEET_ID に設定。
+- sheets_auth の既存バグ: Firestore トークンの更新後に未定義 `token_json_str` を参照して例外 → ADC（scope 不足）へ落ちていた。初期化で修正。
+- Gmail 送信は api_mgmt@pinay.jp 名義になる（From ヘッダ noreply@pinay.jp はそのまま）。
+
 ## line-asana-triage 案 (a) 起票前の重複判定を実装（2026-09-21 03:00 JST・本人指示）
 - LineAsanaTriage `51f31da`: `triage_dedup.py`（直近 60 日の未完了 [AI自動起票] ＋同じ実行で先に起票した依頼を候補に JEV Noul 0.9 以上を同一依頼、
   既存タスクへコメント追記・起票とピナイ登録を省略、メール／LINE に「受付済みの依頼に追記」）、`jev_noul.py` 同梱、`.gcloudignore`、テスト 11 件。
