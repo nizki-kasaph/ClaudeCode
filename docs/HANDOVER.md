@@ -96,6 +96,16 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 5. **第 3 の経路: Vercel AI Gateway** に `typesafe-ai/jev` が同単価（$0.042/1M 入力）で掲載。AI SDK の `evaluate({model, state, questions})` 形式。
    Vercel アカウントと課金設定が必要。ユーザーの Vercel アカウント有無は未確認。OpenRouter は 404 で不可。 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
 
+## Chat DM からの e2e 結果（2026-09-21 01:00〜01:20 JST）
+- 指摘「それ違うよ」: 合格（journal `[pushback-debug-inject] injected … source=jev noul=0.92`）。
+- 中止「そこまでで結構です」: 1 回目は `[stop-word-gate] jev failed: timeout 1500ms`（再起動後の初回呼び出し。新規 node からの初回接続は
+  518〜641 ms で再現せず、原因未確定）。再送で合格（`stop requested … source=jev noul=0.95`）。timeoutMs は 1500 のまま。
+- 判定（judge）: 2 回とも pinay_pick の judge に入らず。1 回目（迷子・乗り間違い）は content-search の登録語彙に当たり pinay_search で 9 件（設計どおり）。
+  2 回目（天候）は pinay_search の候補生成が「候補を作れませんでした」→ Mugi が登録済み「交通機関の遅延」で代用し 2 件を天候として報告。
+  原因は content-search の proposeTerms maxTokens 400 を gemini-flash-latest の思考が食い潰す（VM 実測 9/9 MAX_TOKENS、2000 で全件成功）。
+  OpenClaw_Pinay `7f76b0f` で 2000 に修正・配備・01:18 JST 再起動済み。**judge そのものの実機 e2e は未達**（Mugi が pinay_search を選ぶため。
+  候補生成失敗時に judge へ機械的に渡す案は本人判断待ち）。
+
 ## 次セッションの開始手順（2026-09-20 21:00 JST 更新: 追加 4 件も配備済み・再起動待ち → 組み込み先 3 へ）
 0. 組み込み先 1 は完了・VM 配備済み（下の「08:31 JST 確定版」参照）。触らない。
 0.5 追加 4 件（2026-09-20 本人決定・実装・VM 配布済み、**gateway 再起動で有効**。成約後オペ側のデプロイが終わってから本人が時間を選ぶ）:
