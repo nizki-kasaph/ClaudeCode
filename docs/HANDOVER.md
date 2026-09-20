@@ -96,6 +96,18 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 5. **第 3 の経路: Vercel AI Gateway** に `typesafe-ai/jev` が同単価（$0.042/1M 入力）で掲載。AI SDK の `evaluate({model, state, questions})` 形式。
    Vercel アカウントと課金設定が必要。ユーザーの Vercel アカウント有無は未確認。OpenRouter は 404 で不可。 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
 
+## line-asana-triage 案 (a) 起票前の重複判定を実装（2026-09-21 03:00 JST・本人指示）
+- LineAsanaTriage `51f31da`: `triage_dedup.py`（直近 60 日の未完了 [AI自動起票] ＋同じ実行で先に起票した依頼を候補に JEV Noul 0.9 以上を同一依頼、
+  既存タスクへコメント追記・起票とピナイ登録を省略、メール／LINE に「受付済みの依頼に追記」）、`jev_noul.py` 同梱、`.gcloudignore`、テスト 11 件。
+  Cloud Run 環境変数 TYPESAFE_API_KEY / TRIAGE_DEDUP_DAYS=60 / TRIAGE_DEDUP_THRESHOLD=0.9（TRIAGE_DEDUP=0 で無効）。
+- 実データ検証（Mac・JEV 実呼び出し・Asana 読み取り）: 重複 3 件（idx25→23 0.93、36→33 0.98、26→24 0.98）・非重複 3 件 None、
+  1 件 2.6〜2.9 秒（候補 64 件＝4 束）。未完了 60 日の候補は 19 件（0.8 秒）。
+- 再処理の原因（コード確定・6 月のログは 30 日保持で消失）: `run_triage_flow_and_clean` は Asana 起票後の例外でも is_processed を False に戻すため、
+  次の 15 分ジョブが同じ本文を再トリアージする。6 月の重複はすべて 7/10 の LINE 送信 API 化より前で、当時は Playwright の LINE 手動チャット
+  （ブラウザ起動が try の外）が起票後に走っていた。7/24 以降は再発なし。今回の判定はこの経路の安全網（根本の段階分けは未実施）。
+- 実行中の revision 00013 は LineAsanaTriage ディレクトリの tgz から build（ローカルと同一・秘密ファイル無し）。同日の別 2 ビルド
+  （親ワークスペース全体・Streamlit CMD・token_*.json 同梱）は別サービス向けで、こちらは別途本人へ報告。
+
 ## line-asana-triage の JEV 候補 実測（2026-09-21 02:00 JST・提案のみ・未実装）
 - 対象: `~/Documents/Claude/LineAsanaTriage/line_asana_triage.py`（Cloud Run）。判定は Gemini（gemini-2.5-flash・Vertex）の JSON 1 本
   （分割・title・category 要望／不具合・description・department）。department は社員シートで上書きされるため判定として使われていない。
