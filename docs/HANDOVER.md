@@ -96,8 +96,22 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 5. **第 3 の経路: Vercel AI Gateway** に `typesafe-ai/jev` が同単価（$0.042/1M 入力）で掲載。AI SDK の `evaluate({model, state, questions})` 形式。
    Vercel アカウントと課金設定が必要。ユーザーの Vercel アカウント有無は未確認。OpenRouter は 404 で不可。 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
 
-## 次セッションの開始手順（2026-09-19 09:10 JST 更新: 組み込み先 2 配備済み・再起動待ち → 3 へ）
+## 次セッションの開始手順（2026-09-20 21:00 JST 更新: 追加 4 件も配備済み・再起動待ち → 組み込み先 3 へ）
 0. 組み込み先 1 は完了・VM 配備済み（下の「08:31 JST 確定版」参照）。触らない。
+0.5 追加 4 件（2026-09-20 本人決定・実装・VM 配布済み、**gateway 再起動で有効**。成約後オペ側のデプロイが終わってから本人が時間を選ぶ）:
+   - シート出力の意図: `OpenClaw_Pinay/scripts/session_intent.py`（第 2 段 `default_ask_noul`、閾値 0.6、直近 5 発話）＋ Python 部品
+     `scripts/jev_noul.py`。VM `~/.openclaw/workspace/scripts/` へ直接 install 済み（`deploy_pinay_picklist.sh` は pinay_pick.py の未コミット別作業を
+     巻き込むので使っていない）。VM 実呼び出し 0.83 / 0.04、0.5〜0.8 秒。pinay-picklist の未使用 `SHEET_INTENT_RE` は削除（その 1 行だけを部分ステージ）。
+   - evidence-gate の断言判定（Noul、閾値 0.6、止められた実行がある番だけ）、drive-url-guard の承認要求判定（Noul、閾値 0.6、プレビュー中 ID を含む
+     返答だけ）、pinay-content-search の返答分類（Choice confirm/add/remove/other、confidence 0.7、語が取れなければ `TERM_ASK` で 1 行聞き返す）。
+   - `plugins/_shared/jev.js` は `createJevAsker`（生 answer・state 渡し）を土台に `createNoulAsker` / `createChoiceAsker`。
+   - 実測: `scripts/measure_jev_questions.py`（このリポジトリ）。sheet 0.66〜0.95 / 0.02〜0.06（質問文を 1 回練り直し: v1 は「タブごとに分けて」0.46）、
+     assert 0.78〜0.98 / 0.02〜0.22、approval 0.84〜0.98 / 0.03〜0.12、reply 20/20 confidence 1.0。結果は `vm_samples/jev_questions_v1.json` と
+     `jev_questions_v2_sheet.json`（git 除外）。
+   - テスト: VM node で 6 本全通過（shared 6/6・stop 15/15・pushback・evidence・drive-url-guard・content-search 30/30）、Mac python で session_intent 12/12。
+   - 再起動後の確認: journal に 5 プラグインの registered と、`TYPESAFE_API_KEY が無いため` の警告が**出ない**こと。実機 e2e は Chat DM から
+     「そこまでで結構です」（stop）、「それ違うよ」（pushback）、下書き待ちで「うん」（content-search confirm）。sheet 意図は「先月の欠勤を出して」→
+     「後で見返せるように残しておいて」→ pinay_pick_export が止まらないこと。
 1. 組み込み先 2（中止・指摘の検知）は **実装・VM 配布済み。gateway 再起動で有効になる**（再起動は本人が時間を選んで
    `sudo systemctl restart openclaw`。journal に `[stop-word-gate]` / `[pushback-debug-inject]` の registered 行と、
    `TYPESAFE_API_KEY が無いため` の警告が**出ない**ことを確認する）。
