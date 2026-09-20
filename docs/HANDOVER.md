@@ -96,6 +96,19 @@ https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定�
 5. **第 3 の経路: Vercel AI Gateway** に `typesafe-ai/jev` が同単価（$0.042/1M 入力）で掲載。AI SDK の `evaluate({model, state, questions})` 形式。
    Vercel アカウントと課金設定が必要。ユーザーの Vercel アカウント有無は未確認。OpenRouter は 404 で不可。 公式 API は招待待ち（公式サイトに待機リストのフォームは見当たらず、問い合わせ先 hello@typesafe.ai）。今すぐ使えるのは Cloudflare Workers AI（`typesafe/jev`）。OpenRouter 経路はモデルページ 404 で不可（2026-09-19 確認）。
 
+## line-asana-triage の JEV 候補 実測（2026-09-21 02:00 JST・提案のみ・未実装）
+- 対象: `~/Documents/Claude/LineAsanaTriage/line_asana_triage.py`（Cloud Run）。判定は Gemini（gemini-2.5-flash・Vertex）の JSON 1 本
+  （分割・title・category 要望／不具合・description・department）。department は社員シートで上書きされるため判定として使われていない。
+- データ: Asana の [AI自動起票] タスク 65 件（2026-06-12〜09-17、元テキスト 44 種）。`scripts/pull_triage_tasks.py` → `vm_samples/triage_tasks.json`（git 除外）。
+- 実測 `scripts/measure_triage_category_dedup.py`（結果 `vm_samples/triage_jev_results.json`）:
+  - 区分 Choice（title＋description）: Gemini と 64/65 一致（3.0 秒/65 件）。唯一の不一致 idx31「間取り図アップロードのロード時間短縮」は
+    Gemini 不具合／JEV 要望 0.12 で JEV が妥当。confidence 0.7 未満は 5 件（ロード時間・予防改善など境界）。→ 置き換える価値は薄い。
+  - 重複検知 Noul（同じ元テキスト内のペア 35 組）: 10 組が 0.94〜0.98、残り 25 組は 0.02〜0.07 で完全に分離。10 組は目視でも全て同一依頼。
+    重複の出どころは Gemini の分割ではなく **同じバッファの再処理**（6/16: 2 分差で 2 回、6/26: 15 分毎に 4 回、6/14: 8.8 時間差で 2 回）。
+    7/24 以降の同一テキスト群には重複なし。処理途中の失敗でバッファが残ると次回の 15 分ジョブで再起票される経路が疑われる（未確認）。
+- 提案（本人判断待ち）: (a) 起票前に「直近 N 日の [AI自動起票] 未完了タスク」と JEV で同一依頼判定し、0.9 以上は起票せず既存タスクにコメント追記。
+  (b) 区分は Gemini のままとし、JEV の confidence 0.7 未満だけタスク名に「要確認」を付ける（5/65 程度）。(c) 何もしない（再処理の根本原因を先に見る）。
+
 ## Chat DM からの e2e 結果（2026-09-21 01:00〜01:20 JST）
 - 指摘「それ違うよ」: 合格（journal `[pushback-debug-inject] injected … source=jev noul=0.92`）。
 - 中止「そこまでで結構です」: 1 回目は `[stop-word-gate] jev failed: timeout 1500ms`（再起動後の初回呼び出し。新規 node からの初回接続は
