@@ -35,8 +35,14 @@
   （`TitleResult(..., "need_confirm", "名簿にないため姓名の区切りを確定できません")`）。移行するかどうかの判定ではない。
 - 区切りの決定は抽出（どこで切るか）で、本人の方針どおり JEV の対象外。減らすなら名簿の拡充か依頼者の回答（--rename-file）。
 
+### 追加（2026-09-22 00:45 JST）: harmless を語彙で新設（本人指示・OpenClaw_Pinay PR #92・配備・再起動済み）
+- JEV が harmless と判定した 21 件のうち 13 件は 9/9 以前の警告行（cleanErrorText の 9/9 修正で既に消えている）。残る 8 件が
+  4 系統（Skipped due to queued user message 4・Termination requested for session 2・Command aborted by signal SIGTERM 1・
+  サブエージェントの "cancelled": true 1）で、これを `harmless`（guard_block の直後）として classifyError・日次の CATS/GUIDANCE・
+  report の説明に追加。TECH_WALL には入れず、注入の挙動は不変。
+
 ### 次の候補（未着手）
-- error-triage に「harmless」を語彙で新設（21 件/30 日）と、JEV Choice を上の制限付きで第 2 段に置く案（本人判断）。
+- JEV Choice を上の制限付き（auth／permission／guard_block は語彙のみ）で error-triage の第 2 段に置く案（本人判断。9/12 以降の残りは月 1 件程度）。
 - 依頼の残り（類似要望の集約・依頼と既存イベントの紐付け）は前節のとおり未着手。
 
 ## JEV 関係の現状一覧（2026-09-22 整理・この節が最新の全体像）
