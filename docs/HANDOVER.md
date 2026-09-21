@@ -41,6 +41,15 @@
   サブエージェントの "cancelled": true 1）で、これを `harmless`（guard_block の直後）として classifyError・日次の CATS/GUIDANCE・
   report の説明に追加。TECH_WALL には入れず、注入の挙動は不変。
 
+### 追加（2026-09-22 02:30 JST）: 類似要望の集約 → request_dedup_sweep として実装・配備（本人承認 案1）
+- Asana [AI自動起票] 未完了 66 件の総当たり（2,145 組・79 秒）: 0.9 以上 24 組 → 11 グループ・閉じられる候補 17 件。要確認 8 組。
+  `scripts/measure_asana_dupes_all_pairs.py`。イベント台帳のシステム名義 39 件は重複 3 組（`vm_samples/pinay_event_dupes.json`）。
+- テスト送信の判定: キーワード（テスト／検証）は本物の依頼 5 件に当たりテスト 0 件。JEV「受付機能の動作確認のためのテスト送信か」は
+  66 件・3 秒で 0.82 が 1 件（「あ い」）。→ JEV 方式を採用（0.8 以上を完了、0.3〜0.8 は報告）。
+- 実装: OpenClaw_Pinay `scripts/request_dedup_sweep.py`（PR #96・#98）。Asana は自動で完了＋[重複整理]コメント、イベントは報告のみ。
+  VM cron 06:50 JST `--confirm`（9/22 登録）。Asana トークンは VM `~/.openclaw/.env` へ複製（本人承認）。台帳 PR #99。
+  初回の dry-run: 完了予定 17 件（重複 16・テスト 1）、要確認 4 組、イベント 1 組。初回の本実行は 9/23 06:50 JST。
+
 ### 次の候補（未着手）
 - JEV Choice を上の制限付き（auth／permission／guard_block は語彙のみ）で error-triage の第 2 段に置く案（本人判断。9/12 以降の残りは月 1 件程度）。
 - 依頼の残り（類似要望の集約・依頼と既存イベントの紐付け）は前節のとおり未着手。
