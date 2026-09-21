@@ -1,5 +1,44 @@
 # 引継メモ（2026-09-19 更新 / ローカル Claude Code セッション）
 
+## 既存機能 3 件の JEV 第 2 段 実測（2026-09-22 00:00〜01:00 JST・本人指定の候補）
+
+対象は code-delegation-gate／error-triage／calendar_bulk。VM の transcript_events 30 日分（main・executive・general-user の
+122 セッション・14,429 イベント）と error_triage.jsonl（462 行）を `vm_samples/jev_probe_20260922/`（git 除外）に取り、
+`scripts/measure_cdg_misses.py`・`scripts/measure_error_triage_choice.py` で測った。journal は保持が 3 日で 30 日分は取れない（SQLite が正）。
+
+### 1. code-delegation-gate — JEV は「穴を見つける道具」として有効、常設の第 2 段は不要
+- 本体セッションの exec 2,902 件。語彙に当たった 918 件（うち blocked 18。9/19 のインライン復活前の 900 件は当時の仕様どおり素通り）、
+  当たらなかった 1,984 件（重複除去 292 種）。292 種を Noul「コードを組む動作か」に掛けた結果 ≥0.5 は 5 種 7 回:
+  **`.venv/bin/python3 -c "…"` が 6 回（9/12 09:31 main、同一セッション。1 回はコメントに "Bypass guard by using non-standard python execution"）** と
+  検証用の `bash -c "echo FAILED_…"` 1 回。原因は INLINE_EXEC_RE がインタプリタ名の直前に `/` を許していなかったこと（正規表現の穴）。
+- 利用者の依頼文 7,914 通（重複除去 342 通）を Noul「コード生成の依頼か」に掛けると ≥0.5 は 5 通で、全部が sessions_spawn の子タスク
+  （【依頼者】ヘッダー付き）か私の検証文。社員からの「コードを書いて」は 30 日で 0 通。
+- **結論**: 語彙の穴を直した（OpenClaw_Pinay PR #91、配備・再起動済み 9/22 00:38 JST）。直した後に語彙外で JEV ≥0.5 は 0 件なので、
+  常設の第 2 段を足しても 30 日で拾うものが無い。JEV は「月 1 回、語彙外の exec を一括判定して穴を探す」道具として使うのが合う。
+
+### 2. error-triage（原因分類）— 9/12 以降の other 15 件のうち 14 件は語彙で拾えた。JEV Choice は残りの長い尾に使えるが誤分類の向きに注意
+- 30 日の other 168 件（署名 77 種）を Choice（12 分類＋harmless）に掛けた: input_error 52・harmless 21・not_found 20・script_error 15・
+  permission 15・unsupported 14・guard_block 10・rate_limit 10・other 6・auth 5（3.2 秒）。
+- ただし 168 件の大半は 9/11〜12 に input_error / guard_block の規則が入る前の記録。**規則追加後（9/12 以降）の other は 43 件中 15 件**で、
+  内訳は DuckDuckGo ボット判定 10・apply_patch の壊れたパッチ 3・No session found 1・サンドボックス PDF の URL 不可 1。
+  → 前 3 系統（14 件）を語彙に追加した（同 PR #91: rate_limit に bot-detection、not_found に "No (active) session found"、
+  input_error に usage: / 引数が不正です / apply_patch / Validation failed）。
+- Choice の誤り例（全 30 日分の中）: 「PDF model failed」→ auth 0.82、「Exec approval registration failed」→ permission 0.65、
+  「(Command exited with code 1)」だけ → script_error 0.51。auth／permission は「要システム連絡」に繋がる分類なので、
+  JEV を第 2 段に置くなら **auth／permission／guard_block は語彙だけで決め、JEV には残り（input_error・not_found・unsupported・
+  rate_limit・script_error・harmless）しか選ばせない**形にする。harmless（警告行だけ・利用者の次メッセージで打ち切り・終了要求）は
+  30 日で 21 件が「失敗」として数えられており、分類として新設する価値がある（JEV でなく語彙で可）。
+- 顛末判定（recovered / responded / unknown）は「記録が見つからない」という構造判定で、JEV の対象ではない。
+
+### 3. calendar_bulk — 「要確認」は移行対象の判定ではなく姓名の区切り。JEV の対象外
+- `calendar_bulk.py` の `need_confirm` は `--normalize-name` で「名簿に無い人名の姓名の区切りを確定できない」ときに立つ
+  （`TitleResult(..., "need_confirm", "名簿にないため姓名の区切りを確定できません")`）。移行するかどうかの判定ではない。
+- 区切りの決定は抽出（どこで切るか）で、本人の方針どおり JEV の対象外。減らすなら名簿の拡充か依頼者の回答（--rename-file）。
+
+### 次の候補（未着手）
+- error-triage に「harmless」を語彙で新設（21 件/30 日）と、JEV Choice を上の制限付きで第 2 段に置く案（本人判断）。
+- 依頼の残り（類似要望の集約・依頼と既存イベントの紐付け）は前節のとおり未着手。
+
 ## JEV 関係の現状一覧（2026-09-22 整理・この節が最新の全体像）
 
 ### 利用箇所（コード上 12 か所・自動化台帳では 11 機能に「（JEV利用）」）
