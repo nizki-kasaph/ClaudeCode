@@ -1,5 +1,48 @@
 # 引継メモ（2026-09-19 更新 / ローカル Claude Code セッション）
 
+## JEV 関係の現状一覧（2026-09-22 整理・この節が最新の全体像）
+
+### 利用箇所（コード上 12 か所・自動化台帳では 11 機能に「（JEV利用）」）
+| # | 判定 | 正本の場所 | 型 | しきい値 | 打ち切り | 第 1 段 | 状態 |
+|---|---|---|---|---|---|---|---|
+| 1 | 中止の言い換え | OpenClaw_Pinay `plugins/stop-word-gate` | Noul | 0.8 | 1.5 秒 | 語彙 | 稼働・9/21 Chat e2e 合格（初回 1 回だけ timeout） |
+| 2 | 指摘の言い換え | `plugins/pushback-debug-inject` | Noul | 0.7 | 1.5 秒 | 語彙 | 稼働・9/21 e2e 合格（0.92） |
+| 3 | 断言の言い換え | `plugins/evidence-gate` | Noul | 0.6 | 1.5 秒 | 語彙 | 稼働 |
+| 4 | 承認要求の言い換え | `plugins/drive-url-guard` | Noul | 0.6 | 1.5 秒 | 語彙 | 稼働 |
+| 5 | 下書きへの返答分類 | `plugins/pinay-content-search` | Choice | confidence 0.7 | 1.5 秒 | 語彙 | 稼働・9/21 候補生成の maxTokens 修正 |
+| 6 | シート出力の意図 | `scripts/session_intent.py` | Noul | 0.6 | 1.5 秒 | 語彙 | 稼働 |
+| 7 | 行判定（pinay_pick judge） | `scripts/pinay_judge.py` | Noul（20 行束） | 該当 ≥0.6 / 非該当 <0.25 / 間は要確認 | 15 秒 | なし | 稼働・9/21 with_reasons 修正 |
+| 8 | 教育: 同じ質問か | `mugi_relay/teach.py` | Noul | 0.6 | 30 秒 | 核の類似度 0.55 | 稼働 |
+| 9 | 監査: 出典不十分か | `mugi_relay/qa_audit.py` | Noul | 0.7 | 30 秒 | — | 稼働 |
+| 10 | 週次 QA: 合否・重複 | `mugi_relay/qa_weekly.py` | Noul | 0.6 / 同一 0.6 | 30 秒 | — | 稼働 |
+| 11 | support@ 差出人が顧客か | **Claude-all `OpenClaw_QA_chat/backend/support_triage.py`**（VM `~/mugi-relay`） | Noul | 顧客 ≥0.15 | — | No. の有無 | 稼働・9/19 確定版（is_customer 1 問のみ） |
+| 12 | LINE 受付の重複依頼 | LineAsanaTriage `triage_dedup.py`（Cloud Run rev 00018） | Noul | 0.9・同じ依頼者・60 日 | — | — | 稼働・9/21 06:00 LINE e2e 合格 |
+
+- 共通方針: キーワード一致が第 1 段、未一致だけ JEV。JEV 未応答・未設定は null で従来動作（fail-open）。
+- 共通部品: `OpenClaw_Pinay/plugins/_shared/jev.js`（createNoulAsker / createChoiceAsker）、`OpenClaw_Pinay/scripts/jev_noul.py`
+  （ask_noul / ask_many。relay と LineAsanaTriage には同じファイルを配布）。model `jev-latest`、URL `https://api.typesafe.ai/v1/systemone`。
+- キーの所在: VM `~/.openclaw/.env`（プラグイン・exec 子プロセス）、VM `~/mugi-relay/.env`（relay）、Cloud Run 環境変数（triage）、
+  ローカル `JEV-UsageGuide/.env`（実測用）。
+- 実測スクリプトはこのリポジトリの `scripts/`（stop/pushback・質問文・judge 束・triage 区分と重複）。データは `vm_samples/`（git 除外）。
+- 台帳側: 11 機能に「（JEV利用）」（OpenClaw_Pinay `640b0b1`）。drive-url-guard は「Drive/Sheets 出力ガード」に含まれ、
+  session_intent は「該当者ピックアップ」の一部として数えている。
+
+### 候補（未着手・本人判断待ち）
+- 依頼の残りから: 類似要望の集約（未完了 66 件の同一判定。実測済み部品で一括でき最も安い）、依頼と既存イベントの紐付け（judge と同じ形）、
+  LINE 未返信顧客の抽出（会話本文の取得経路の確認が先）、バウンス本文の恒久／一時判定（gmail-intake と同じ Choice の形）。
+  交通費異常・計算誤り・アンケート分岐は数値・選択肢のため対象外。
+- 既存機能の第 2 段: code-delegation-gate（正規表現 8 本）、error-triage の原因分類（8 本）、calendar_bulk の要確認 19 件、
+  meet_schedule の言い回し分類（13 本）。着手前に VM の journal と error_triage_daily で直近 30 日の語彙不一致・分類不能・要確認の件数を測る。
+  destructive-op-guard・retry-ladder は構造判定のため対象外。
+
+### 残っている未完了（JEV 以外を含む・2026-09-22 時点）
+1. Asana の未完了 AI 起票 66 件に 6 月の重複が残る（閉じる・まとめるは本人判断）。
+2. line-asana-triage の再処理の根本対策（起票済みの段階をバッファに記録）は未実施。重複判定が安全網。
+3. 社員 LINE リストは変換シート（27 名）が正。xlsx 更新は反映されない。「社員LINE送信用」（32 名）との統合は未決。
+4. LineMessengerAPI: ドレイン後片付けのハング、30 日周期のセッション失効時の自動復旧（初回は 10/3 頃）。
+5. 8/28 の別ビルド（親ワークスペース全体）にトークン JSON が同梱されていた件は PinayAutomationPortal 側で未確認。
+6. 下の「次にここで続けること（2026-09-21 05:40）」節は完了済み（06:00 の節が結果）。
+
 ## 課題
 https://chatgpt-lab.com/n/n746a127b4074（AGIラボ「爆速で爆安、判定専用AI『JEV』を徹底解説」）の使い方を整理し、
 `nizki-kasaph/ClaudeCode` の `claude/organize-usage-guide-8tdmh6` に置く。
