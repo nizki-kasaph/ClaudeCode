@@ -112,3 +112,34 @@ Gemma-4-31B 7.4 / Qwen3.5-35B 10.5 / Qwen3.5-27B 12.1 / gpt-oss-120B 14.2（%）
 - https://benchlm.ai/anthropic/api-pricing（Claude API 価格）
 - https://aiagent-navi.com/special/image-gen-api-pricing/（画像 API 価格）
 - https://lumimusic.ai/blog/suno-pricing（Suno 価格）
+
+## 実施記録（2026-09-29・手順 A を M1 16GB で実施 / ローカル Claude Code セッション）
+
+詳細は OpenClaw_Pinay `docs/local-ai-setup.md`（入れた場所・設定・実測の全体）。ここは JEV 側の要点だけ。
+
+- **手順 1**: Ollama 0.34.4（CLI 版、`~/.local/ollama`。Homebrew は Intel 版で不可）。`gemma4:e4b` は Ollama 上 **9.6GB**（Q4_K_M でも同じ 8.95GiB。
+  「約 3GB」は `ollama ps` の常駐量 3.2〜3.4GB の話）。QAT 版 `e4b-it-qat` は 5.7GiB。初回起動だけ GPU 検出が 30 秒でタイムアウト（再起動で Metal 認識）。
+- **手順 2**: OpenClaw 2026.8.1 に `api:"ollama"`・`/v1` なし・`reasoning:false`・`think:false`・`keep_alive 15m`・`timeoutSeconds 300` で設定。
+  `contextTokens` は **32768**（8192 だと main のシステムプロンプト約 1 万トークンが入らず compact_only に落ちる）。
+  M1 の E4B はプロンプト処理 41 tok/s なので、main（1 万トークン）は 1 往復 5 分半。軽量エージェント `local`（最小ツール）で **42 秒・ツール呼び出し成功**。
+- **手順 3**: `OpenClaw_Pinay/plugins/local-draft`（ツール `local_draft`）。語彙（実行を伴う依頼は対象外）→ Ollama 生成 → 語彙（元の文に無い数字・URL）→
+  JEV Noul「draft は source に無い事実を断定しているか」（qa_audit の質問の置き換え、しきい値 0.7）→ 未応答は `OK_UNCHECKED`。共通部品 `plugins/_shared/local_llm.js`。
+- **手順 4**: `client/jev_client.py` に `JEV_BACKEND=ollama`（`/api/chat` の構造化出力で noul / choice を代行。score は unsupported）。
+  `scripts/measure_local_vs_jev.py` で 6 セット 120 件を JEV live と比較（結果は下表、`vm_samples/local_vs_jev_gemma4_e4b.json`）。
+  既存の `measure_*.py` は `JEV_BACKEND=ollama` を付けるだけで同じデータをローカルで回せる。
+
+| set | n | local 正答 | JEV 正答 | 一致率 | local ms | JEV ms |
+|---|---|---|---|---|---|---|
+| stop | 20 | 100% | 100% | 100% | 2494 | 232 |
+| pushback | 20 | 90% | 100% | 90% | 2636 | 215 |
+| sheet | 20 | 95% | 100% | 95% | 3083 | 218 |
+| assert | 20 | 100% | 100% | 100% | 2453 | 203 |
+| approval | 20 | 100% | 100% | 100% | 2512 | 203 |
+| reply（Choice） | 20 | 95% | 100% | 95% | 2787 | 192 |
+
+  E4B は配線確認用。速度は JEV の 12 倍遅い。採用判断は M5 の 26B-A4B で `--model gemma4:26b-a4b` を回してから（手順 B-2）。
+- **手順 5**: ComfyUI はソース版 0.37.0（MPS）+ comfy プロバイダ 2026.8.1 + SDXL base。Comfy Desktop（1.1.3）は `~/Applications` に置いたが初回ウィザードは GUI のため未実行。
+- **手順 6**: `OpenClaw_Pinay/local_ai/text_overlay.py`（Pillow・ヒラギノ）。
+- **手順 7**: ACE-Step 1.5 は uv 環境のみ（重み未取得・ディスク残量の都合）。`ACESTEP_NO_INIT=true` で API 起動、`/health`・`/docs` 200 を確認。
+  REST を叩く小プラグイン `OpenClaw_Pinay/plugins/acestep-music`（ツール `music_generate_local`）。
+- **手順 8**: 設定断片・ワークフロー JSON・プラグイン・実測スクリプトを両リポジトリのブランチに入れた（OpenClaw_Pinay `feat/local-ai-stage-a`、このリポジトリ `local-ai-stage-a`）。重みは入れていない。
