@@ -4,7 +4,8 @@
 
 ## 前提
 
-- 機材: 今は M1 16GB（macOS 27）。本運用は M5 64GB を想定。設定・配線は今から組み、モデルの重みは M5 で差し替える。
+- 機材: 今は M1 16GB（macOS 27）。本運用は MacBook Air M5 32GB（2026-10-02 訂正。当初 64GB としていたが Air は 32GB が上限）。
+  設定・配線は今から組み、モデルの重みは M5 で差し替える。
 - 用途: 日常用途の LLM とサイト、低ハルシネーション、OpenClaw（OpenClaw_Pinay）との連携で特化プラグインを組む。
   画像は一枚絵で日本語の文字を入れる。音楽も生成する（現在 MusicGen → ACE-Step へ切替）。
 - 判定（Noul / Choice 型）は JEV を継続。ローカル LLM は「生成」担当、JEV は「検証」担当。
@@ -17,7 +18,7 @@
 |---|---|---|
 | 設計・複雑なコード・重い推論 | Claude（Sonnet 5 / Opus 5） | ローカル 30B 級は Haiku 4.5 相当で 1〜2 世代差 |
 | 日常の要約・分類・下書き・秘匿データ | Gemma 4 26B-A4B（Ollama） | HHEM 5.2%、Apache-2.0。M1 では E4B で代用 |
-| ローカルのコード補助 | Qwen3-Coder 30B-A3B（Ollama） | M5 で導入 |
+| ローカルのコード補助 | Qwen3-Coder 30B-A3B（Ollama） | M5 で導入。32GB では Gemma 4 と入れ替えで都度ロード |
 | 判定 | JEV（TypeSafe） | 置換は同一データで一致率を測ってから |
 | 一枚絵・日本語文字あり | Z-Image Turbo（既定）/ Qwen-Image 2.1（品質重視） | FLUX.2 klein は漢字が崩れる |
 | 一枚絵・文字なし・出自回避 | FLUX.2 klein 9B + 文字はコードでフォント合成 | |
@@ -44,14 +45,33 @@
    OpenClaw からは ComfyUI の `music_generate` ではなく REST API を直接叩く小プラグインの方が既存形式に近い。
 8. 設定ファイル（OpenClaw config、ComfyUI のワークフロー JSON、プラグインのコード、実測スクリプト）を Git に入れる。モデルの重みは Git に入れず、M5 で取り直す。
 
-## 手順 B: M5 64GB に移してからやること
+## 手順 B: M5 32GB に移してからやること
 
-1. Ollama で `gemma4:26b-a4b`（Q4 で約 16GB）と Qwen3-Coder 30B-A3B を入れ、OpenClaw のモデル名を差し替える。
-2. `scripts/measure_*.py` を 26B-A4B で回し、JEV との一致率を出す。ここで初めて判定の置換可否を判断する。
-3. ComfyUI のモデルを Z-Image Turbo（約 16GB）に差し替え、常駐は Gemma 4 + Z-Image の 2 つ（合計 32GB 前後）。
-   Qwen-Image 2.1（bf16 で約 30GB、Q4 GGUF なら約 11GB）は都度ロード。
-4. ACE-Step を XL（4B、12〜20GB）に上げる。LLM と同時には載せない。
-5. 国産 LLM の並行検証（任意）: LLM-jp-4 32B-A3B（フルスクラッチ、Apache-2.0）を同じデータで測る。主力にはしない。
+32GB の制約（2026-10-02 見直し）:
+- GPU が使えるメモリは既定で RAM の約 2/3（36GB 以下の機種）。32GB なら **約 21〜24GB** が上限。
+  `sudo sysctl iogpu.wired_limit_mb=24576` で 24GB まで上げられる（再起動で戻る。macOS の分を残すため上げすぎない）。
+- メモリ帯域は M5 無印 153GB/s で、下の実測値メモの M5 Pro（307GB/s）の半分。decode 速度もおおむね半分を見込む。
+- **重いモデル（10GB 超）は 1 つずつ**。手順 A と同じく、画像・音楽を触るときは LLM を止める（`ollama stop <model>`）。
+  Ollama は `OLLAMA_MAX_LOADED_MODELS=1` にして、Gemma 4 と Qwen3-Coder が同時に載らないようにする。
+
+| 用途 | モデル | 目安のメモリ | 32GB での扱い |
+|---|---|---|---|
+| 日常の LLM | Gemma 4 26B-A4B Q4 | 16〜18GB（常駐 14〜16GB） | 単独なら常駐可。M5 32GB で約 22 tok/s の報告 |
+| コード補助 | Qwen3-Coder 30B-A3B Q4_K_M | 約 19GB | Gemma 4 と入れ替え。同時に載せない |
+| 画像（既定） | Z-Image Turbo **fp8** | ファイル約 6GB・実行時約 13GB | bf16（約 16GB）はやめて fp8 にする。LLM と同居させるなら E4B（常駐 3.2〜3.4GB）に落とす |
+| 画像（品質重視） | Qwen-Image 2.1 **Q4 GGUF** | 約 11GB | 都度ロード。bf16（約 30GB）は載らない |
+| 音楽 | ACE-Step 1.5 2B（既定）/ XL 4B | 2B 約 4.7GB / XL 約 9GB（推奨 16GB 以上） | XL は LLM を止めて単独で。LM は 1.7B まで（4B は 24GB 以上の区分） |
+
+1. Ollama で `gemma4:26b-a4b`（Q4 で約 16〜18GB。ライブラリ上のタグ名は `gemma4:26b` の可能性あり、pull 前に確認）を入れ、OpenClaw のモデル名を差し替える。
+   `contextTokens 32768` は KV キャッシュの分だけ常駐が増えるので、`ollama ps` で 21GB 以内に収まるか確かめる。
+2. `scripts/measure_*.py` を 26B-A4B で回し、JEV との一致率を出す。ここで初めて判定の置換可否を判断する（このとき他のモデルは止める）。
+3. Qwen3-Coder 30B-A3B（Q4_K_M 約 19GB）を入れる。Gemma 4 とは入れ替えで使う。上限ぎりぎりなので、遅い・落ちるときは
+   上限を 24GB に上げるか、Gemma 4 26B-A4B にコードもさせる。
+4. ComfyUI のモデルを Z-Image Turbo **fp8** に差し替える。常駐は「Gemma 4 + Z-Image」の 2 つではなく、
+   **「Gemma 4 26B 単独」か「E4B + Z-Image fp8」**のどちらか。Qwen-Image 2.1 は Q4 GGUF を都度ロード。
+5. ACE-Step は 2B のまま重みを取り、XL（4B）は LLM・画像を止めたときだけ使う。
+6. 国産 LLM の並行検証（任意）: LLM-jp-4 32B-A3B（フルスクラッチ、Apache-2.0）を同じデータで測る。主力にはしない。
+   32GB では単独ロード。サイズは pull 前に確認する。
 
 ## 保留・注意
 
@@ -59,13 +79,17 @@
   Draw Things は FLUX.2 klein / Z-Image の学習が 0 ステップ目で落ちる（Issue #114、2026-08-12、未修正）。SDXL / FLUX.1 の学習は動く。
   急ぐなら fal.ai 等で学習し、LoRA だけ持ち帰る。
 - **MusicGen の重みは CC-BY-NC 4.0（非商用）**。サイトや案件で使う音楽は ACE-Step に切り替える。
-- **gpt-oss-120b は 64GB に載らない**（MXFP4 で重み約 63GB）。70B dense は載るが 15〜20 tok/s で判定用途には向かない。
+- **gpt-oss-120b・70B dense は 32GB に載らない**（gpt-oss-120b は MXFP4 で重み約 63GB。64GB 想定のときも載らなかった）。
+- **Qwen3.8-Flash-Next（125B）は 32GB の Mac では動かない**: MLX 版（MTPLX）の最小構成で RAM 96GB 以上。
+  Strata（12GB 級のグラボで動かす推論エンジン）は Windows / Linux の NVIDIA・AMD 専用で、Mac は対象外。
 - **源内（デジタル庁）の 7 モデル**は政府内基盤で、個人で重みを落とせるのは Sarashina2.2 の小型と PLaMo 2 8B のみ。
   Llama-3.1-ELYZA-JP-70B はダウンロード不可（デモ・法人 API のみ）。2027-01 の評価公表で見直す。
 - Qwen3.5 系は HHEM で 10〜12% と Gemma 4 より作話が多い。推論型（thinking 付き）は総じて率が上がる。
 - 指数のスコアは版で数値が変わる。順位関係だけを見る。
 
 ## 実測値のメモ（M5 Pro 64GB、Ollama、2026-08-17 更新の第三者ベンチ）
+
+M5 無印（Air）は帯域が半分なので、下の数字のおおむね半分を見込む。64GB 前提の数字で、32GB に載らないものも含む。
 
 | モデル | decode tok/s |
 |---|---|
@@ -95,6 +119,27 @@ Gemma-4-31B 7.4 / Qwen3.5-35B 10.5 / Qwen3.5-27B 12.1 / gpt-oss-120B 14.2（%）
 - https://github.com/ace-step/ACE-Step-1.5/issues/619
 - https://github.com/drawthingsai/draw-things-community/issues/114
 - https://github.com/llm-jp/awesome-japanese-llm
+
+## 出典（32GB 見直し・2026-10-02 追加）
+
+本文を直接確認したもの:
+- https://support.apple.com/en-us/126320（MacBook Air 13 インチ M5 の仕様。メモリは 24GB / 32GB）
+- https://support.apple.com/en-us/126321（同 15 インチ）
+- https://github.com/ace-step/ACE-Step-1.5/blob/main/docs/en/GPU_COMPATIBILITY.md（メモリ区分ごとの DiT / LM の可否）
+- https://github.com/youssofal/MTPLX（Qwen3.8 系の必要メモリ）
+- https://github.com/niko1221/strata（対応 OS・GPU）
+
+検索結果の要約のみ:
+- https://www.apple.com/newsroom/2026/03/apple-introduces-the-new-macbook-air-with-m5/（M5 の帯域 153GB/s）
+- https://en.wikipedia.org/wiki/Apple_M5（M5 Pro 307GB/s）
+- https://modelpiper.com/blog/iogpu-wired-limit-mb-mac（GPU に回せるメモリの既定値と `iogpu.wired_limit_mb`）
+- https://contracollective.com/blog/mac-unified-memory-wired-limit-gpu-large-local-llm-2026（同上）
+- https://modelfit.io/macbook-pro/m5/（Gemma 4 26B-A4B が M5 32GB で約 22 tok/s）
+- https://dev.to/purpledoubled/how-to-run-googles-gemma-4-locally-with-ollama-all-4-model-sizes-compared-2pbh（gemma4:26b のサイズ）
+- https://llmconfigurator.com/en/guides/coding-agents/run-qwen3-coder-locally（qwen3-coder:30b は Q4_K_M で 19GB）
+- https://www.stablediffusiontutorials.com/2025/11/z-image-turbo.html（Z-Image Turbo fp8 約 6GB・GGUF 3.79〜7.22GB）
+- https://localaimaster.com/blog/z-image-turbo-comfyui（fp8 の実行時メモリ約 13GB）
+- https://freeaimusictools.com/blog/ace-step-apple-silicon-install/（XL は 16GB 以上でページングなし）
 
 ## 出典（検索結果の要約のみ。本文はセッションのネットワーク制限で未読）
 
@@ -138,7 +183,7 @@ Gemma-4-31B 7.4 / Qwen3.5-35B 10.5 / Qwen3.5-27B 12.1 / gpt-oss-120B 14.2（%）
 | approval | 20 | 100% | 100% | 100% | 2512 | 203 |
 | reply（Choice） | 20 | 95% | 100% | 95% | 2787 | 192 |
 
-  E4B は配線確認用。速度は JEV の 12 倍遅い。採用判断は M5 の 26B-A4B で `--model gemma4:26b-a4b` を回してから（手順 B-2）。
+  E4B は配線確認用。速度は JEV の 12 倍遅い。採用判断は M5（32GB）の 26B-A4B で `--model gemma4:26b-a4b` を回してから（手順 B-2）。
 - **手順 5**: ComfyUI はソース版 0.37.0（MPS）+ comfy プロバイダ 2026.8.1 + SDXL base。Comfy Desktop（1.1.3）は `~/Applications` に置いたが初回ウィザードは GUI のため未実行。
 - **手順 6**: `OpenClaw_Local/local_ai/text_overlay.py`（Pillow・ヒラギノ）。
 - **手順 7**: ACE-Step 1.5 は uv 環境のみ（重み未取得・ディスク残量の都合）。`ACESTEP_NO_INIT=true` で API 起動、`/health`・`/docs` 200 を確認。
